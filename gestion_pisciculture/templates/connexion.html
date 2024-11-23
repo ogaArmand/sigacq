@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <!-- Basic -->
+      <meta charset="utf-8" />
+      <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+      <!-- Mobile Metas -->
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+      <!-- Site Metas -->
+      <meta name="keywords" content="" />
+      <meta name="description" content="" />
+      <meta name="author" content="" />
+      <link rel="shortcut icon" href="static/images/logofada.png" type="">
+      <title>Bible Quiz Fada</title>
+      <!-- bootstrap core css -->
+      <link rel="stylesheet" type="text/css" href="static/css/bootstrap.css" />
+      <!-- font awesome style -->
+      <link href="static/css/font-awesome.min.css" rel="stylesheet" />
+      <!-- Custom styles for this template -->
+      <link href="static/css/style.css" rel="stylesheet" />
+      <!-- responsive style -->
+      <link href="static/css/responsive.css" rel="stylesheet" />
+   </head>
+
+    <body class="font-inter">
+      <!-- inner page section -->
+      <section class="inner_page_head">
+         <div class="container_fuild">
+            <div class="row">
+               <div class="col-md-12">
+                  <div class="full">
+                     <h3>Se connecter</h3>
+                     <p>
+                         Acc&eacute;dez &agrave; votre compte en remplissant les champs ci-dessous
+                    </p>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </section>
+      <!-- end inner page section -->
+        <div class="container-fluid">
+            <div class="row align-items-center vh-50 wrapper-back justify-content-center">
+                <div class="col-12 col-xl-3 col-lg-3 col-sm-4 col-md-3">
+                    <div class="auth-box p-4 shadow-sm">
+                        <div class="text-center 2xl:mb-10 mb-4">
+                            <div class="mobile-logo text-center mb-6 lg:hidden block">
+                                <a href="index.html">
+                                    <img src="static/images/logofada.png" alt="" class="w-25">
+                                </a>
+                            </div>
+                            
+                            
+                        </div>
+
+                            <div class="mb-2">
+                                <label class="form-label">Nom d'utilisateur</label>
+                                <div class="relative">
+                                    
+                                    <input type="text" id="username" name="username" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">Mot de passe</label>
+                                <div>
+                                    <input type="password" id="pass" name="pass" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="justify-between">
+                                <label class="">
+                                    <input type="checkbox" class="hiddens">
+                                    <span class="text-body-secondary ps-1 leading-6">
+                                        Double authentification <span class="text-lighter text-body-tertiary">(facultatif)</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <style>
+                                .btton{
+                                    background-color: #002c3e;
+                                    color: white;
+                                }
+                            </style>
+                            <button onclick="seConnecter()" type="submit" class="btn btton waves-effect w-100 mt-4 text-center">Se connecter</button>
+                   
+                        <div class="mb-2 form-group">
+                        Vous n'avez pas de compte ? 
+                        <div class="form-control">
+                            <a href="{% url 'create_account' %}">
+                                Créer un compte
+                            </a>
+                        </div>
+                     </div>
+                        <div class="row">
+                            <div class="col-auto mx-auto mt-4">
+                                <div class="text-sm-end desc-title">
+                                    <small>
+                                        <script>document.write(new Date().getFullYear())</script> © bible quiz fada.
+                                        Tous droits r&eacute;serv&eacute;s
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- JAVASCRIPT -->
+              <!-- jQery -->
+      <script src="static/js/jquery-3.4.1.min.js"></script>
+      <!-- popper js -->
+      <script src="static/js/popper.min.js"></script>
+      <!-- bootstrap js -->
+      <script src="static/js/bootstrap.js"></script>
+      <!-- custom js -->
+      <script src="static/js/custom.js"></script>
+
+        <script type="text/javascript">
+            function seConnecter(){
+                var username = document.getElementById('username').value;
+                var password = document.getElementById('pass').value;
+                
+                if(password === '' || username === '' ){
+                    console.log("Username/Mot de passe n'a pas été renseigné")
+                    Toastify({
+                    text: "Username/Mot de passe n'a pas été renseigné",
+                    duration: 3000
+                    }).showToast();
+                    return;
+                }
+            
+                var data = {
+                    'username': username,
+                    'pass': password 
+                }
+            
+                $.ajax({
+                    url: "{% url 'connexion' %}",
+                    data: data,
+                    method: 'POST',
+                    success: function(data){
+                    
+                    if(data.status == 'PasOk'){
+                        console.log("Nom utilisateur/Mot de passe incorrects")
+                        Toastify({
+                        text: "Nom utilisateur/Mot de passe incorrects",
+                        duration: 2000
+                        }).showToast();
+                        return;
+                    }
+                    // Affiche le toast
+                    //monModal.show();
+                    window.location.href = '{% url "accueil" %}';
+                    },
+                    error: function(e){
+                        console.log("erreur", e);
+                    Toastify({
+                        text: "Une erreur s'est produite",
+                        duration: 2000
+                    }).showToast();
+                    }
+                });
+            }
+        </script>
+    </body>
+</html>

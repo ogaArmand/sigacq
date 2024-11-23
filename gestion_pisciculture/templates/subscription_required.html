@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <!-- Basic -->
+      <meta charset="utf-8" />
+      <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+      <!-- Mobile Metas -->
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+      <!-- Site Metas -->
+      <meta name="keywords" content="" />
+      <meta name="description" content="" />
+      <meta name="author" content="" />
+      <link rel="shortcut icon" href="static/images/logofada.png" type="">
+      <title>Bible Quiz Fada</title>
+      <!-- bootstrap core css -->
+      <link rel="stylesheet" type="text/css" href="static/css/bootstrap.css" />
+      <!-- font awesome style -->
+      <link href="static/css/font-awesome.min.css" rel="stylesheet" />
+      <!-- Custom styles for this template -->
+      <link href="static/css/style.css" rel="stylesheet" />
+      <!-- responsive style -->
+      <link href="static/css/responsive.css" rel="stylesheet" />
+   </head>
+
+    <body class="font-inter">
+     <!-- inner page section -->
+      <section class="inner_page_head">
+         <div class="container_fuild">
+            <div class="row">
+               <div class="col-md-12">
+                  <div class="full">
+                     <h3>Abonnement requis</h3>
+                     <p>
+                          participez au jeu Biblique et gagnez une villa
+                    </p>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </section>
+      <!-- end inner page section -->
+        <div class="container-fluid">
+            <div class="row align-items-center vh-50 wrapper-back justify-content-center">
+                <div class="col-12 col-xl-3 col-lg-3 col-sm-4 col-md-3">
+                    <div class="auth-box p-4 shadow-sm">
+                        <div class="text-center 2xl:mb-10 mb-4">
+                            <div class="mobile-logo text-center mb-6 lg:hidden block">
+                                <a href="{% url 'accueil' %}">
+                                    <img src="static/images/logofada.png" alt="" class="w-25">
+                                </a>
+                            </div>
+
+                        </div>
+                        
+                        <p>Pour accéder à cette fonctionnalité, vous devez disposer d'un abonnement actif.</p>
+                        <p>Veuillez souscrire à un abonnement pour pouvoir continuer.</p>
+
+                          <form action="{% url 'paiement' %}" method="post">
+                            {% csrf_token %}
+                            <input type="text" id="cout" name="cout" class="form-control" placeholder="Montant">
+                            <style>
+                                .btton{
+                                    background-color: #002c3e;
+                                    color: white;
+                                }
+                            </style>
+                              <button onclick="seConnecter()" type="submit" class="btn btton waves-effect w-100 mt-4 text-center">Je m'abonne</button>
+                            </form> 
+                        
+                        <!-- END: Login Form -->
+                        <div class="mb-2 form-group">
+                         
+                        <div class="form-control">
+                            <a href="{% url 'paiement' %}">
+                                Demo
+                            </a>
+                        </div>
+                     </div>
+                        <div class="row">
+                            <div class="col-auto mx-auto mt-4">
+                                <div class="text-sm-end desc-title">
+                                    <small>
+                                        <script>document.write(new Date().getFullYear())</script> © bible quiz fada.
+                                        Tous droits r&eacute;serv&eacute;s
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- JAVASCRIPT -->
+                    <!-- jQery -->
+      <script src="static/js/jquery-3.4.1.min.js"></script>
+      <!-- popper js -->
+      <script src="static/js/popper.min.js"></script>
+      <!-- bootstrap js -->
+      <script src="static/js/bootstrap.js"></script>
+      <!-- custom js -->
+      <script src="static/js/custom.js"></script>
+
+       
+    </body>
+</html>

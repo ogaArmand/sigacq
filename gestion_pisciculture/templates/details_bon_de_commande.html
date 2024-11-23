@@ -1,0 +1,325 @@
+<h5>Bon de commande : {{ bon_de_commande.ref_bon }}</h5>
+<p>Client : {{ bon_de_commande.client.nom }}</p>
+<p>Date de commande : {{ bon_de_commande.date_commande }}</p>
+
+<h6>items commandés :</h6>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Poisson</th>
+            <th>Date</th>
+            <th>Quantité</th>
+            <th>Poids (Kg)</th>
+            <th>Prix unitaire (FCFA)</th>
+            <th>Total (FCFA)</th>
+        </tr>
+    </thead>
+    <tbody id="ligneCommandeBody">
+        {% for ligne in lignes_commande %}
+        <tr>
+            <td class="poisson">{{ ligne.poisson.espece.nom }}</td>
+            <td  class="date">{{ ligne.bon_de_commande.date_commande }}</td>
+            <td  class="quantite">{{ ligne.quantite }}</td>
+            <td  class="poids (Kg)">{{ ligne.poids }}</td>
+            <td class="prixUnitaire (FCFA)">{{ ligne.prix_unitaire }}</td>
+            <td class="prix_total (FCFA)">{{ ligne.sous_total }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="1" style="text-align: right;">Total :</td>
+            <td></td>
+            <td><span id="total_quantite_popup">0</span></td> <!-- Aligné sous la colonne Quantité -->
+            <td><span id="total_poids_popup">0</span></td> <!-- Aligné sous la colonne Poids -->
+            <td></td> <!-- Vide sous Prix unitaire -->
+            <td><span id="total_prix_popup">0</span></td> <!-- Aligné sous la colonne Total ligne -->
+          
+        </tr>
+        
+        
+    </tfoot>
+</table>
+
+<script>
+    // Fonction pour calculer les totaux
+    function calculerTotaux() {
+        let totalQuantite = 0;
+        let totalPoids = 0;
+        let totalPrix = 0;
+
+        // Parcourir chaque ligne de commande
+        const lignes = document.querySelectorAll('#ligneCommandeBody tr');
+        lignes.forEach(row => {
+            const quantite = parseFloat(row.querySelector('.quantite').textContent) || 0;
+            const poids = parseFloat(row.querySelector('.poids').textContent) || 0;
+            const prixTotal = parseFloat(row.querySelector('.prix_total').textContent) || 0;
+
+            totalQuantite += quantite;
+            totalPoids += poids;
+            totalPrix += prixTotal;
+
+        });
+
+        // Mettre à jour les totaux dans le footer
+        // document.getElementById('total_quantite_popup').textContent = totalQuantite.toFixed(2);
+        // document.getElementById('total_poids_popup').textContent = totalPoids.toFixed(2);
+        // document.getElementById('total_prix_popup').textContent = totalPrix.toFixed(2);
+        document.getElementById('total_quantite_popup').textContent = formatNumber(totalQuantite.toFixed(2));
+        document.getElementById('total_poids_popup').textContent = formatNumber(totalPoids.toFixed(2));
+        document.getElementById('total_prix_popup').textContent = formatNumber(totalPrix.toFixed(2));
+    }
+
+    function formatNumber(num) {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    }
+
+    // Appeler la fonction lors de l'affichage de la popup
+    calculerTotaux();
+</script>
+
+
+<script>
+
+    document.getElementById('printButton').addEventListener('click', function() {
+    printInvoice();
+});
+
+
+function printInvoice() {
+    // Récupérer les données du tableau
+    const rows = document.querySelectorAll('#ligneCommandeBody tr');
+    let invoiceRows = '';
+
+    rows.forEach(row => {
+        const poisson = row.querySelector('.poisson').textContent.trim();
+        const date_commande = row.querySelector('.date').textContent.trim();
+        const quantite = parseFloat(row.querySelector('.quantite').textContent) || 0;
+        const poids = parseFloat(row.querySelector('.poids').textContent) || 0;
+        const prixUnitaire = parseFloat(row.querySelector('.prixUnitaire').textContent) || 0;
+        const prixTotal = parseFloat(row.querySelector('.prix_total').textContent) || 0;
+       
+
+        invoiceRows += `
+            <tr>
+                <td>${poisson}</td>
+                <td>${date_commande}</td>
+                <td>${quantite}</td>
+                <td>${poids}</td>
+                <td>${prixUnitaire.toFixed(2)}</td>
+                <td>${prixTotal.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+
+    // Récupérer les totaux
+    const totalQuantite = document.getElementById('total_quantite_popup').textContent;
+    const totalPoids = document.getElementById('total_poids_popup').textContent;
+    const totalGeneral = document.getElementById('total_prix_popup').textContent;
+
+    // Récupérer les informations client et bon de commande
+    const clientName = '{{ bon_de_commande.client.nom }}';
+    const bon_de_commande = '{{ bon_de_commande.ref_bon }}';
+    const date_commande = '{{ bon_de_commande.date_commande }}';
+
+    // Contenu du QR Code : Ici, vous pouvez inclure des informations spécifiques à la facture.
+    const qrContent = `Facture Achat de poisson\nNumero: ${bon_de_commande}\nClient: ${clientName}\nDate facture: ${date_commande}\nMontant total: ${totalGeneral} FCFA`;
+
+
+    // Ouvrir une nouvelle fenêtre pour la facture
+    const printWindow = window.open('', '', 'width=800,height=600');
+
+    // Générer le contenu de la facture dans la nouvelle fenêtre
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>Facture</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        margin: 20px;
+                    }
+                    h3 {
+                        text-align: left;
+                    }
+                    h2 {
+                        text-align: right;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-bottom: 20px;
+                        border: 1px solid black;
+                    }
+               
+                    th {
+                        background-color: orange;
+                        color: aqua;
+                        border: 1px solid black;
+                        padding: 10px;
+                        text-align: left;
+                        }
+                    td {
+                        background-color: #d9d9d9;
+                        color:  #063e89;
+                        border: 1px solid black;
+                        padding: 10px;
+                        text-align: left;
+                        }
+                    .totals {
+                        text-align: right;
+                        margin-top: 20px;
+                    }
+                    .totals p {
+                        font-size: 18px;
+                    }
+                    .invoice-header {
+                        text-align: right;
+                        margin-bottom: 20px;
+                    }
+                    .logo {
+                    width: 50px;
+                    }
+                    .imgpieds {
+                    width: 100%;
+                    }
+                    #printButton {
+                        display: none;
+                    }
+                     .footer {
+                    position: fixed;
+                    bottom: 0;
+                    left: 0;
+                    width: 100%;
+                    text-align: center;
+                    border-top: 1px solid black;
+                    padding-top: 10px;
+                    background-color: white;
+                    font-size: 12px;
+                    color: gray;
+                    margin-top: 50px;
+                }
+
+.footer-content {
+    position: relative;
+}
+                .text-overlay {
+                    position: absolute;
+                    top: 60%; /* Vous pouvez ajuster la position verticale */
+                    left: 50%;
+                    transform: translate(-0%, -50%); /* Centrer le texte */
+                    color: white; /* La couleur du texte sur l'image 
+                    text-align: right;
+                   
+                    font-size: 8px; /* Ajustez la taille du texte selon vos besoins */
+                    padding: 20px;
+                  
+                }
+                </style>
+            </head>
+            <body>
+                <div class="invoice-header">
+                    <table>
+                        <tr>
+                            <td style="text-align: left;">
+                                <h3>Client</h3>
+                                 <strong>Nom du client :</strong> ${clientName}<br>
+                                 <strong>N° du bon :</strong> ${bon_de_commande}<br><br>
+                                 <strong>Date Facture :</strong> ${date_commande}
+
+                            </td>
+                            <td style="text-align: right;">
+                                <div id="qrcode"></div>
+                            </td>
+                            <td style="text-align: right;">
+
+                                <img class="logo" src="static/images/logosgci.png" alt="Logo SGCI">
+                                <h2>SGCI</h2>
+                                Adresse de votre société <br>
+                               info@sgci.com | +225 0544169597
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <h3>Facture de Commande</h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Poisson</th>
+                            <th>Date</th>
+                            <th>Quantité</th>
+                            <th>Poids (Kg)</th>
+                            <th>Prix Unitaire (FCFA)</th>
+                            <th>Sous-total (FCFA)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${invoiceRows}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2" style="text-align: right;">Totaux :</td>
+                            <td><span id="total_quantite">${totalQuantite}</span></td>
+                            <td><span id="total_poids">${totalPoids}</span></td>
+                            <td colspan=""></td>
+                            <td><span id="total_general">${totalGeneral}</span></td>
+                            
+                        </tr>
+                    </tfoot>
+                </table>
+
+            
+                <div class="footer">
+                
+                <div class="footer-content">
+            <img class="imgpieds" src="static/images/piedspage.jpg" alt="Logo SGCI">
+            <div class="text-overlay">
+                  
+                    SARL au capital 3 000 000 FCFA <br>
+                    NCC : 1740657W <br>
+                    Régime Réel Simplifié / Centre des Impôts : BINGERVILLE <br>
+                    Banque : CORIS BANK CI N°166 01001 003958024101 38 
+                </div>
+                </div>
+                </div>
+
+                <button id="printButton" onclick="printfacture()">Imprimer la Facture</button>
+            </body>
+        </html>
+    `);
+
+
+    // Charger le script pour générer le QR Code
+    const script = printWindow.document.createElement('script');
+    //script.src = "static/js/qrcode.min.js"; // Chemin vers le fichier QRCode.js
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+    script.onload = function() {
+        const qrElement = printWindow.document.getElementById('qrcode');
+        new QRCode(qrElement, {
+            text: qrContent,
+            width: 100,
+            height: 100,
+            colorDark: "#063e89",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.L,
+        });
+    };
+    
+    printWindow.document.head.appendChild(script);
+
+    // Ajout du script d'impression une fois la fenêtre fermée
+    printWindow.document.close();
+    printWindow.focus();
+
+
+    // Fonction pour masquer le bouton et imprimer
+    printWindow.onload = function() {
+        printWindow.document.getElementById('printButton').hidden = true;
+        printWindow.print();
+    };
+}
+
+</script>
+
+ <script src="static/js/qrcode.min.js"></script>
