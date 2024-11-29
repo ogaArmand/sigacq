@@ -163,7 +163,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # INSTALLED_APPS += ['django_celery_beat']
 
 
-TWILIO_ACCOUNT_SID = 'ACc81d8062aabcbbbf9958f5de30690dd3'
-TWILIO_AUTH_TOKEN = 'fe1e510e46068c152d2ecddd4097acde'
-TWILIO_PHONE_NUMBER = '+17753732899'
-SITE_URL = 'https://sigacq-sgci.ci/'  # URL de base pour vos liens
+# TWILIO_ACCOUNT_SID = 'ACc81d8062aabcbbbf9958f5de30690dd3'
+# TWILIO_AUTH_TOKEN = 'fe1e510e46068c152d2ecddd4097acde'
+# TWILIO_PHONE_NUMBER = '+17753732899'
+# SITE_URL = 'https://sigacq-sgci.ci/'  # URL de base pour vos liens
