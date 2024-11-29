@@ -1,0 +1,307 @@
+{% extends 'base.html' %} 
+
+{% block content %}
+
+{% load humanize %}
+{% load custom_filters %}
+
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+
+                    <!-- Page Heading -->
+                    <!-- <h1 class="h3 mb-2 text-gray-800">Tables</h1>
+                    <p class="mb-4">DataTables is a third party plugin that is used to generate the demo table below.
+                        For more information about DataTables, please visit the <a target="_blank"
+                            href="https://datatables.net">official DataTables documentation</a>.</p> -->
+
+                    <!-- DataTales Example -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Stock alimentaire</h6>
+
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <a href="{% url 'ajouter_StockAlimentaire' %}" class="btn btn-success">Ajouter un nouveau stock</a>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                                    <thead>
+                                        <tr>
+                                            <th>Aliment</th>
+                                            <th>Quantité disponible</th>
+                                        </tr>
+                                    </thead>
+                                  
+                                    <tbody>
+                                        {% for stockalimentaire in stockalimentaires %}
+                                       
+                                        <tr class="source-row" data-id="{{ stockalimentaire.id }}">
+                                            <td>{{ stockalimentaire.aliment.nom }}</td>
+                                            <td>{{ stockalimentaire.quantite_disponible }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                        
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- /.container-fluid -->
+
+                <div class="container-fluid">
+
+                    <!-- Page Heading -->
+                    <!-- <h1 class="h3 mb-2 text-gray-800">Tables</h1>
+                    <p class="mb-4">DataTables is a third party plugin that is used to generate the demo table below.
+                        For more information about DataTables, please visit the <a target="_blank"
+                            href="https://datatables.net">official DataTables documentation</a>.</p> -->
+
+                    <!-- DataTales Example -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Historique des entrées en stock</h6>
+
+                        </div>
+                        <div class="card-body">
+                            <!-- <div class="mb-3">
+                                <a href="{% url 'ajouter_historique_sourcefine' %}" class="btn btn-success">Ajouter un nouveau financement</a>
+                            </div> -->
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="historique-table" width="100%" cellspacing="0">
+                                    <thead>
+                                        <tr>
+                                            <th>stock</th>
+                                            <th>quanté</th>
+                                            <th>Date d'ajout</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Les données seront insérées ici via JavaScript -->
+                                    </tbody>
+                                </table>
+                                
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- /.container-fluid -->
+
+                <div class="container-fluid">
+
+
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Historique des sorties de stock</h6>
+
+                        </div>
+                        <div class="card-body">
+                          
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="historique-stock-table" width="100%" cellspacing="0">
+                                    <thead>
+                                        <tr>
+                                            <th>Poisson</th>
+                                            <th>Stade d'évolution</th>
+                                            <th>quanté</th>
+                                            <th>Date de sortie</th>
+                                            
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Les données seront insérées ici via JavaScript -->
+                                    </tbody>
+                                </table>
+                                
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+           
+    <!-- End of Page Wrapper -->
+
+
+
+    <style>
+        /* Style pour la ligne sélectionnée */
+        .source-row.selected {
+            background-color: #007bff; /* Fond bleu */
+            color: white; /* Texte en blanc pour contraster avec le fond bleu */
+            font-weight: bold; /* Texte en gras */
+            border-left: 4px solid blue; /* Souligner avec une bordure gauche bleue */
+        }
+    </style>
+    
+    <script>
+        function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+       document.addEventListener("DOMContentLoaded", function () {
+    const rows = document.querySelectorAll(".source-row");
+    rows.forEach(row => {
+        row.addEventListener("click", function () {
+            const sourceId = this.dataset.id;
+
+            // Retirer la classe 'selected' des autres lignes
+            rows.forEach(r => r.classList.remove('selected')); // Supprime la sélection des autres lignes
+            // Ajouter la classe 'selected' à la ligne cliquée
+            this.classList.add('selected'); // Marque la ligne courante comme sélectionnée
+
+            // Requête AJAX pour récupérer l'historique
+            fetch(`/get_historique_stock/${sourceId}/`, {
+                method: "GET",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Mise à jour du tableau Historique
+                const historiqueTable = document.querySelector("#historique-table tbody");
+                historiqueTable.innerHTML = ""; // Vider le tableau avant ajout
+                data.forEach(historique => {
+                    const row = `
+                        <tr>
+                            <td>${historique.stock}</td>
+                            <td>${historique.quantite_ajoute}</td>
+                            <td>${historique.date_mise_a_jour}</td>
+                            <td>
+                               
+                                <!-- Actions -->
+                                <button class="btn btn-primary btn-circle btn-modifier" data-id="${historique.id}"><i class="fas fa-wrench"></i></button>
+                                <button class="btn btn-danger btn-circle btn-supprimer" data-id="${historique.id}"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    historiqueTable.innerHTML += row;
+                });
+                
+                // Ajouter les gestionnaires d'événements pour les boutons Modifier et Supprimer
+                attachActionHandlers();
+            })
+            .catch(error => console.error("Erreur :", error));
+        });
+    });
+
+   
+    rows.forEach(row => {
+        row.addEventListener("click", function () {
+            const sourceId = this.dataset.id;
+
+            // Retirer la classe 'selected' des autres lignes
+            rows.forEach(r => r.classList.remove('selected')); // Supprime la sélection des autres lignes
+            // Ajouter la classe 'selected' à la ligne cliquée
+            this.classList.add('selected'); // Marque la ligne courante comme sélectionnée
+
+            // Requête AJAX pour récupérer l'historique
+            fetch(`/get_historique_stock_sorti/${sourceId}/`, {
+                method: "GET",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Mise à jour du tableau Historique
+                const historiqueTable = document.querySelector("#historique-stock-table tbody");
+                historiqueTable.innerHTML = ""; // Vider le tableau avant ajout
+                data.forEach(historique => {
+                    const row = `
+                        <tr>
+                            <td>${historique.poisson}</td>
+                            <td>${historique.etapeevolution}</td>
+                            <td>${historique.rationalimentaire_donnee}</td>
+                            <td>${historique.date_alimentation_reel}</td>
+                           
+                        </tr>
+                    `;
+                    historiqueTable.innerHTML += row;
+                });
+                
+                // Ajouter les gestionnaires d'événements pour les boutons Modifier et Supprimer
+                attachActionHandlers();
+            })
+            .catch(error => console.error("Erreur :", error));
+        });
+    });
+    
+
+    // Fonction pour attacher les gestionnaires d'événements aux boutons Modifier et Supprimer
+    function attachActionHandlers() {
+        const btnsModifier = document.querySelectorAll(".btn-modifier");
+        const btnsSupprimer = document.querySelectorAll(".btn-supprimer");
+
+        btnsModifier.forEach(btn => {
+            btn.addEventListener("click", function () {
+                const id = this.dataset.id;
+                console.log("ID récupéré :", id);
+
+                modifier_historique_stock(id); // Appeler la fonction pour modifier
+            });
+        });
+
+        btnsSupprimer.forEach(btn => {
+            btn.addEventListener("click", function () {
+                const id = this.dataset.id;
+                supprimer_historique_stock(id); // Appeler la fonction pour supprimer
+            });
+        });
+    }
+
+    function modifier_historique_stock(id) {
+    console.log(`Modifier l'historique avec l'ID : ${id}`);
+    // Rediriger l'utilisateur vers la page de modification du formulaire
+    window.location.href = `/modifier_StockAlimentaire/${id}/`;
+}
+
+
+function supprimer_historique_stock(id) {
+    // Implémentez ici la logique pour supprimer l'historique
+    console.log(`Supprimer l'historique avec l'ID : ${id}`);
+    // Par exemple, afficher une confirmation et envoyer une requête AJAX
+    if (confirm("Voulez-vous vraiment supprimer ce stock ?")) {
+        fetch(`/supprimer_StockAlimentaire/${id}/`, {
+            method: "DELETE",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                "X-CSRFToken": csrftoken // Ajoutez le token CSRF ici
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                alert("Historique supprimé avec succès !");
+                // Rafraîchir la liste si nécessaire
+                document.querySelector(`button[data-id="${id}"]`).closest("tr").remove();
+            } else {
+                alert("Erreur lors de la suppression.");
+            }
+        })
+        .catch(error => console.error("Erreur :", error));
+    }
+}
+
+});
+
+
+    </script>
+
+{% endblock content %}

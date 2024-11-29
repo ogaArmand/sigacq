@@ -19,3 +19,15 @@ def is_pdf(file_url):
 
 # 14156024100002
 # 825303V
+
+
+@register.filter
+def add_class(field, css):
+    """
+    Ajoute une classe CSS à un champ de formulaire tout en respectant les attributs existants.
+    """
+    attrs = field.field.widget.attrs
+    existing_classes = attrs.get('class', '')
+    updated_classes = f"{existing_classes} {css}".strip()
+    attrs['class'] = updated_classes
+    return field.as_widget(attrs=attrs)

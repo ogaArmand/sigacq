@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     # 'gestion_pisciculture',
     'gestion_pisciculture.apps.GestionPiscicultureConfig',
+    'django_cron',
 ]
 
 MIDDLEWARE = [
@@ -72,6 +73,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'pisciculture.wsgi.application'
 
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
@@ -134,10 +154,16 @@ STATICFILES_DIRS = [
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Configuration de Celery
-CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Assurez-vous que Redis est installé
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
+# # Configuration de Celery
+# CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Assurez-vous que Redis est installé
+# CELERY_ACCEPT_CONTENT = ['json']
+# CELERY_TASK_SERIALIZER = 'json'
 
-# Django Celery Beat Configuration
-INSTALLED_APPS += ['django_celery_beat']
+# # Django Celery Beat Configuration
+# INSTALLED_APPS += ['django_celery_beat']
+
+
+TWILIO_ACCOUNT_SID = 'ACc81d8062aabcbbbf9958f5de30690dd3'
+TWILIO_AUTH_TOKEN = 'fe1e510e46068c152d2ecddd4097acde'
+TWILIO_PHONE_NUMBER = '+17753732899'
+SITE_URL = 'https://sigacq-sgci.ci/'  # URL de base pour vos liens

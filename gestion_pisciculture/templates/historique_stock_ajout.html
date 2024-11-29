@@ -1,0 +1,31 @@
+{% extends 'base.html' %} 
+
+{% block content %}
+
+{% load humanize %}
+{% load custom_filters %}
+
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+
+                        <div class="card shadow mb-4">
+                            <div class="card-header py-3">
+                                <h1 class="m-0 font-weight-bold text-primary">Ajout d'un nouveau financement</h1>
+                            </div>
+                            <div class="card-body">
+
+                            <form  class="user" method="post" action="{% url 'ajouter_historique_sourcefine' %}">                           
+                                {% csrf_token %}
+                                 <div class="form-group">
+                                {{ form.as_p }}
+                                </div>
+                                <button class="btn btn-success btn-lg btn-icon-split" style="padding: 15px 30px; width: 100%;" type="submit" >Valider</button>
+
+                            </form>
+
+                            </div>
+                        </div>
+
+                </div>
+                <!-- /.container-fluid -->
+ {% endblock content %}

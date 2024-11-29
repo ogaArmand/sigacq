@@ -42,6 +42,63 @@ def update_nombre_poisson_dispo_taux_mortalite_reel(sender, instance, **kwargs):
     poisson.save()
 
 
+    # Signal pour mettre à jour le solde de la sourcefine après création ou suppression d'une dépense
+@receiver(post_save, sender=Depense)
+def update_solde_on_create(sender, instance, created, **kwargs):
+    # Soustraction du montant de la dépense au solde de la sourcefine
+    sourcefine = instance.sourcefine
+    sourcefine.solde -= instance.montant
+    sourcefine.save()
+
+@receiver(post_delete, sender=Depense)
+def update_solde_on_delete(sender, instance, **kwargs):
+    # Ajout du montant de la dépense supprimée au solde de la sourcefine
+    sourcefine = instance.sourcefine
+    sourcefine.solde += instance.montant
+    sourcefine.save()
+
+
+@receiver(post_save, sender=SuiviAlimentaire)
+def mettre_a_jour_stock_apres_suivi(sender, instance, created, **kwargs):
+    """
+    Met à jour le stock alimentaire après l'enregistrement d'un suivi.
+    """
+    try:
+        # Récupérer la ration alimentaire associée
+        rationalimentaire = RationAlimentaire.objects.filter(poisson=instance.poisson).first()
+        if not rationalimentaire:
+            raise ValidationError(f"Aucune ration alimentaire trouvée pour le poisson {instance.poisson}.")
+        
+        # Récupérer l'aliment associé
+        aliment = rationalimentaire.aliment
+        
+        # Récupérer le stock de l'aliment associé
+        stock = StockAlimentaire.objects.get(aliment=aliment)
+        
+        # Réduire le stock en fonction de la quantité donnée
+        stock.mettre_a_jour_stock(instance.rationalimentaire_donnee)
+    except StockAlimentaire.DoesNotExist:
+        raise ValidationError(f"Le stock pour l'aliment {aliment.nom} n'existe pas.")
+
+
+
+@receiver(post_save, sender=Paiement)
+def update_vente_reste_a_paye(sender, instance, **kwargs):
+    # Récupérer la vente associée au bon de commande du paiement
+    bon_de_commande = instance.bon_de_commande
+    vente = Vente.objects.filter(bon_de_commande=bon_de_commande).first()
+
+    if vente:
+        # Calculer le total des paiements associés au bon de commande
+        total_paye = Paiement.objects.filter(bon_de_commande=bon_de_commande).aggregate(
+            total=Sum('montant_paye')
+        )['total'] or 0
+
+        # Mettre à jour les champs dans le modèle Vente
+        vente.montant_paye = total_paye
+        vente.reste_a_paye = vente.prix_vente - total_paye
+        vente.save()
+
 # # Signal pour les dépenses
 # @receiver(post_save, sender=Depense)
 # def notify_depense_save(sender, instance, **kwargs):
@@ -140,3 +197,10 @@ def update_nombre_poisson_dispo_taux_mortalite_reel(sender, instance, **kwargs):
 #             f"Total actuel des dépenses : {total_depenses} FCFA (Seuil : {seuil} FCFA)."
 #         )
 #         send_sms(msg)  # Remplacez par le numéro du patron
+
+
+
+# @receiver(post_save, sender=demandeReduction)
+# def envoyer_sms_validation(sender, instance, created, **kwargs):
+#     if created:  # Seulement à la création d'une nouvelle demande
+#         envoyer_lien_validation(instance)

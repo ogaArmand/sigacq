@@ -1,0 +1,77 @@
+{% extends 'base.html' %} 
+
+{% block content %}
+
+{% load humanize %}
+{% load custom_filters %}
+
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+
+                    <!-- Page Heading -->
+                    <!-- <h1 class="h3 mb-2 text-gray-800">Tables</h1>
+                    <p class="mb-4">DataTables is a third party plugin that is used to generate the demo table below.
+                        For more information about DataTables, please visit the <a target="_blank"
+                            href="https://datatables.net">official DataTables documentation</a>.</p> -->
+
+                    <!-- DataTales Example -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Liste de pêche de calibrage</h6>
+
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <a href="{% url 'ajouter_pechedecalibrage' %}" class="btn btn-success">Ajouter pêche de calibrage</a>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                                    <thead>
+                                        <tr>
+                                            <th>Poisson</th>
+                                            <th>date de pêche</th>
+                                            <th>poids moyen</th>
+                                            <th>Quantité disponible pour la vente</th>
+                                            <th>commentaires</th>
+                                            <th>Actions</th> <!-- Colonne pour les actions -->
+                                        </tr>
+                                    </thead>
+                                  
+
+                                    <tbody>
+                                    {% for pechedecalibrage in pechedecalibrages %}
+                                        <tr>
+                                            
+                                            <td>{{ pechedecalibrage.poisson }}</td>
+                                            <td>{{ pechedecalibrage.date_peche }}</td>
+                                            <td>{{ pechedecalibrage.poids_moyen }}</td>
+                                            <td>{{ pechedecalibrage.quantite_peche }}</td>
+                                            <td>{{ pechedecalibrage.commentaires }}</td>
+                                            <td>
+                                                <!-- Bouton de modification -->
+                                                 <form action="{% url 'modifier_pechedecalibrage' %}" method="get" style="display:inline;">
+                                                   {% csrf_token %}
+                                                    <input type="hidden" name="id" value="{{ pechedecalibrage.id }}">
+                                                     <button class="btn btn-primary btn-circle"><i class="fas fa-wrench"></i></button>
+                                                 </form>
+                                                
+                                               
+                                                <!-- Bouton de suppression -->
+                                                <form action="{% url 'supprimer_pechedecalibrage'%}" method="POST" style="display:inline;">
+                                                    {% csrf_token %}
+                                                      <input type="hidden" name="id" value="{{ pechedecalibrage.id }}">
+                                                    <button type="submit" class="btn btn-danger btn-circle" onclick="return confirm('Voulez-vous vraiment supprimer cette vente ?');"><i class="fas fa-trash"></i></button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                        
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- /.container-fluid -->
+{% endblock content %}

@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 import json
 from django.shortcuts import render, redirect,get_object_or_404, HttpResponseRedirect
 from datetime import date, timedelta, datetime
@@ -44,6 +44,10 @@ import urllib, base64
 import matplotlib.ticker as ticker
 from django.utils.timezone import now
 from decimal import Decimal
+
+from twilio.rest import Client
+from django.conf import settings
+
 
 groupe = None
 
@@ -518,6 +522,40 @@ def modifier_bassin(request):
         form = BassinForm(instance=bassin)
     return render(request, 'bassin_modifier.html', {'form': form, 'bassin': bassin})
 
+def ajouter_bande(request):
+    if request.method == 'POST':
+        form = BandeForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('liste_bande')  # Redirection vers la liste des poissons
+    else:
+        form = BandeForm()
+    # Si la requête est GET, afficher le formulaire
+    return render(request, 'bande_ajout.html',{'form': form})
+
+
+def liste_bande(request):
+    bandes = Bande.objects.all()
+    return render(request, 'bande_liste.html', {'bandes': bandes})
+
+def supprimer_bande(request, id):
+    bande = get_object_or_404(Bande, id=id)
+    bande.delete()
+    return redirect('liste_bande')  # Rediriger vers la liste des bassins après la suppression
+
+
+def modifier_bande(request):
+    id = request.GET.get('id')
+    bande = get_object_or_404(Bande, id=id)
+    if request.method == 'POST':
+        form = BandeForm(request.POST, instance=bande)
+        if form.is_valid():
+            form.save()
+            return redirect('liste_bande')  # Redirection après modification
+    else:
+        form = BandeForm(instance=bande)
+    return render(request, 'bande_modifier.html', {'form': form, 'bande': bande})
+
 
 def Ajoutespece(request):
     if request.method == 'POST':
@@ -560,6 +598,8 @@ def ajouter_poisson(request):
         form = PoissonForm(request.POST)
         if form.is_valid():
             form.save()
+            # Mise à jour des stocks de poissons et de la bande associée
+       
             return redirect('liste_poisson')  # Redirection vers la liste des poissons
     else:
         form = PoissonForm()
@@ -577,6 +617,7 @@ def modifier_poisson(request):
         form = PoissonForm(request.POST, instance=poisson)
         if form.is_valid():
             form.save()
+            poisson.update_stock()
             return redirect('liste_poisson')  # Redirection après modification
     else:
         form = PoissonForm(instance=poisson)
@@ -627,6 +668,50 @@ def supprimer_mortalite(request):
         return redirect('liste_mortalite')  # Redirection après suppression
 
 
+def ajouter_nourrirpoisson(request):
+    if request.method == 'POST':
+        form = NourrirpoissonForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('liste_nourrirpoisson')  # Redirection vers la liste des poissons
+    else:
+        form = NourrirpoissonForm()
+    return render(request, 'nourrirpoisson_ajout.html', {'form': form})
+
+
+def get_etapes_actives(request):
+    poisson_id = request.GET.get('poisson_id')
+    if poisson_id:
+        etapes = EtapeEvolution.objects.filter(poisson_id=poisson_id, etat=True)
+        etapes_data = [{'id': etape.id, 'name': str(etape)} for etape in etapes]
+        return JsonResponse({'etapes': etapes_data})
+    return JsonResponse({'etapes': []})
+
+def liste_nourrirpoisson(request):
+    nourrirpoissons = Nourrirpoisson.objects.all()
+    return render(request, 'nourrirpoisson_liste.html', {'nourrirpoissons': nourrirpoissons})
+
+def modifier_nourrirpoisson(request):
+    id = request.GET.get('id')
+    nourrirpoisson = get_object_or_404(Nourrirpoisson, id=id)
+    if request.method == 'POST':
+        form = NourrirpoissonForm(request.POST, instance=nourrirpoisson)
+        if form.is_valid():
+            form.save()
+            return redirect('liste_nourrirpoisson')  # Redirection après modification
+    else:
+        form = NourrirpoissonForm(instance=nourrirpoisson)
+    return render(request, 'nourrirpoisson_modifier.html', {'form': form, 'nourrirpoisson': nourrirpoisson})
+
+
+def supprimer_nourrirpoisson(request):
+    id = request.Get.get('id')
+    nourrirpoisson = get_object_or_404(Nourrirpoisson, id=id)
+    if request.method == 'POST':
+        nourrirpoisson.delete()
+        return redirect('liste_nourrirpoisson')  # Redirection après suppression
+
+
 def Ajout_aliment(request):
     if request.method == 'POST':
         form = AlimentForm(request.POST)
@@ -673,10 +758,10 @@ def distribuer_ration(request, poisson_id):
         for aliment_rec in aliments_recommandes:
             
             # Calculer la quantité totale d'aliment à distribuer (nombre d'alevins * quantité recommandée par poisson)
-            quantite_totale = poisson.nombre_alevins * aliment_rec.quantite_recommandee
+            quantite_totale = poisson.nombre_poisson_dispo * aliment_rec.quantite_recommandee
 
             # Calculer le coût total pour ce type d'aliment
-            cout_total = aliment_rec.calculer_cout_total(poisson.nombre_alevins)
+            cout_total = aliment_rec.calculer_cout_total(poisson.nombre_poisson_dispo)
 
             rationalimentaire_id = request.POST.get('id')
             # Vérifier s'il existe déjà une ration alimentaire pour ce poisson, aliment et date donnée
@@ -703,6 +788,93 @@ def distribuer_ration(request, poisson_id):
     else:
         # Gérer le cas où aucune étape n'est trouvée pour le poisson
         return HttpResponse("Aucune étape d'évolution trouvée pour ce poisson.")
+
+
+def mettre_a_jour_ration_alimentaire():
+    """
+    Met à jour la ration alimentaire en fonction de l'étape actuelle du poisson.
+    """
+    poissons = Poisson.objects.all()
+
+    for poisson in poissons:
+        # Récupérer l'étape actuelle du poisson
+        etape_actuelle = EtapeEvolution.objects.filter(poisson=poisson, etat=True).last()  # Assurez-vous d'avoir l'étape active
+
+        if etape_actuelle:
+            # Récupérer les aliments recommandés pour l'espèce du poisson et l'étape actuelle
+            aliments_recommandes = AlimentRecommande.objects.filter(espece=poisson.espece, stade=etape_actuelle.stade_actuel)
+            
+            if aliments_recommandes.exists():
+                # Mettre à jour la ration alimentaire de ce poisson avec les aliments recommandés
+                for aliment_recommande in aliments_recommandes:
+                    ration, created = RationAlimentaire.objects.update_or_create(
+                        poisson=poisson,
+                        defaults={
+                            'quantite': aliment_recommande.quantite_recommandee*poisson.nombre_poisson_dispo,  # Quantité d'aliment recommandée pour ce poisson et ce stade
+                            'cout_total': aliment_recommande.prix*poisson.nombre_poisson_dispo,  # Aliment spécifique recommandé
+                            'aliment': aliment_recommande.aliment,  # Aliment spécifique recommandé
+                        }
+                    )
+                    if created:
+                        print(f"Ration alimentaire créée pour le poisson {poisson} au stade {etape_actuelle.stade_actuel}.")
+                    else:
+                        print(f"Ration alimentaire mise à jour pour le poisson {poisson} au stade {etape_actuelle.stade_actuel}.")
+            else:
+                print(f"Aucun aliment recommandé trouvé pour le poisson {poisson} au stade {etape_actuelle.stade_actuel}.")
+        else:
+            print(f"Aucune étape active trouvée pour le poisson {poisson}.")
+
+from datetime import date, timedelta
+from django.db.models import Q
+
+def generer_suivi_automatique():
+    """
+    Génère automatiquement un SuiviAlimentaire pour chaque poisson en fonction de la date_debut de l'étape en cours,
+    et crée un suivi pour chaque jour manquant depuis cette date_debut.
+    """
+    poissons = Poisson.objects.all()
+    today = date.today()
+
+    for poisson in poissons:
+        try:
+            # Vérifier si le poisson a une étape en cours (etat=True)
+            etape = EtapeEvolution.objects.filter(poisson=poisson, etat=True).first()
+
+            if etape:  # Si le poisson a une étape en cours
+                start_date = etape.date_debut  # Utiliser la date_debut de l'étape comme point de départ
+                delta = today - start_date
+
+                # Générer un suivi pour chaque jour manquant depuis la date_debut de l'étape
+                for i in range(delta.days + 1):
+                    current_day = start_date + timedelta(days=i)
+
+                    # Vérifier si un suivi existe déjà pour ce jour-là
+                    if not SuiviAlimentaire.objects.filter(poisson=poisson, etapeevolution=etape, date_alimentation_auto=current_day).exists():
+                        # Obtenir la ration alimentaire recommandée pour le poisson
+                        ration_recom = RationAlimentaire.objects.get(poisson=poisson)
+
+                        # Créer une nouvelle entrée de suivi alimentaire
+                        SuiviAlimentaire.objects.create(
+                            poisson=poisson,
+                            etapeevolution=etape,
+                            rationalimentaire_recom=ration_recom.quantite,  # Ration recommandée
+                            rationalimentaire_donnee=0.0,  # Par défaut, aucune alimentation donnée
+                            rationalimentaire_ecart=ration_recom.quantite,  # L'écart est total
+                            date_alimentation_auto=current_day,  # Ajouter la date d'alimentation
+                        )
+                        print(f"Suivi alimentaire créé pour le poisson {poisson} pour la date {current_day}.")
+                    else:
+                        print(f"Suivi alimentaire déjà existant pour le poisson {poisson} à la date {current_day}.")
+            else:
+                print(f"Aucune étape en cours pour le poisson {poisson}.")
+        except RationAlimentaire.DoesNotExist:
+            print(f"Aucune ration alimentaire trouvée pour le poisson {poisson}.")
+
+
+mettre_a_jour_ration_alimentaire()
+generer_suivi_automatique()
+
+
 
 def ajouter_RationAlimentaire(request):
     if request.method == 'POST':
@@ -864,6 +1036,62 @@ def supprimer_SuiviCroissance(request):
         return redirect('liste_SuiviCroissance')  # Redirection après suppression
     
 
+def ajouter_pechedecalibrage(request):
+    if request.method == 'POST':
+        form = PecheDeCalibrageForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('liste_pechedecalibrage')  # Redirection vers la liste des poissons
+    else:
+        form = PecheDeCalibrageForm()
+    return render(request, 'pechedecalibrage_ajout.html', {'form': form})
+
+
+def liste_pechedecalibrage(request):
+    pechedecalibrages = PecheDeCalibrage.objects.all()
+    return render(request, 'pechedecalibrage_liste.html', {'pechedecalibrages': pechedecalibrages})
+
+def modifier_pechedecalibrage(request):
+    id = request.GET.get('id')
+    pechedecalibrage = get_object_or_404(PecheDeCalibrage, id=id)
+    if request.method == 'POST':
+        form = PecheDeCalibrageForm(request.POST, instance=pechedecalibrage)
+        if form.is_valid():
+            form.save()
+            return redirect('liste_pechedecalibrage')  # Redirection après modification
+    else:
+        form = PecheDeCalibrageForm(instance=pechedecalibrage)
+    return render(request, 'pechedecalibrage_modifier.html', {'form': form, 'pechedecalibrage': pechedecalibrage})
+
+
+def supprimer_pechedecalibrage(request):
+    # Récupérer l'objet à supprimer
+    peche_id = request.GET.get('id')
+    pechedecalibrage = get_object_or_404(PecheDeCalibrage, id=peche_id)
+
+    if request.method == 'POST':
+        # Récupérer les objets liés avant suppression
+        poisson = pechedecalibrage.poisson
+        bande = poisson.bande  # Accéder à la bande associée
+
+        # Rétablir les stocks
+        poisson.nombre_poisson_dispo = F('nombre_poisson_dispo') + pechedecalibrage.quantite_peche
+        poisson.save()
+
+        bande.quantite_disponible_vente = F('quantite_disponible_vente') - pechedecalibrage.quantite_peche
+        bande.save()
+
+        # Supprimer l'instance
+        pechedecalibrage.delete()
+
+        # Redirection après suppression
+        return redirect('liste_pechedecalibrage')
+
+    # Affichage de la page de confirmation
+    return render(request, 'supprimer_pechedecalibrage.html', {'pechedecalibrage': pechedecalibrage})
+
+    
+
 
 def ajouter_StockAlimentaire(request):
     if request.method == 'POST':
@@ -877,17 +1105,55 @@ def ajouter_StockAlimentaire(request):
 
 
 def liste_StockAlimentaire(request):
-    # stockalimentaires = StockAlimentaire.objects.all()
-    stockalimentaires_totaux = StockAlimentaire.objects.values('aliment__nom').annotate(total_quantite=Sum('quantite_disponible'))
+    stockalimentaires = StockAlimentaire.objects.all()
+    # stockalimentaires_totaux = StockAlimentaire.objects.values('aliment__nom').annotate(total_quantite=Sum('quantite_disponible'))
     context = {
         # 'stockalimentaires': stockalimentaires,
-        'stockalimentaires_totaux':stockalimentaires_totaux
+        'stockalimentaires':stockalimentaires
                }
-    return render(request, 'stockalimentaire_liste.html',context)
+    return render(request, 'stock_liste.html',context)
 
-def modifier_StockAlimentaire(request):
-    id = request.GET.get('id')
-    stockalimentaire = get_object_or_404(StockAlimentaire, id=id)
+
+def get_historique_stock(request, stock_id):
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        
+        historique = Historique_stock.objects.filter(stock_id=stock_id)
+       
+        data = [
+            {
+                "id": h.id,
+                "stock": h.stock.aliment.nom,
+                "quantite_ajoute": str(h.quantite_ajoute),
+                "date_mise_a_jour": h.date_mise_a_jour.strftime("%Y-%m-%d"),
+            }
+            for h in historique
+        ]
+      
+        return JsonResponse(data, safe=False)
+    return JsonResponse({"error": "Requête invalide"}, status=400)
+
+def get_historique_stock_sorti(request, stock_id):
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        stock = StockAlimentaire.objects.get(id=stock_id)
+        historique = Nourrirpoisson.objects.filter(aliment_id=stock.aliment_id)
+        
+        data = [
+            {
+                "id": h.id,
+                "poisson": h.poisson.espece.nom,
+                "etapeevolution": h.etapeevolution.stade_actuel.stade,
+                "rationalimentaire_donnee": str(h.rationalimentaire_donnee),
+                "date_alimentation_reel": h.date_alimentation_reel.strftime("%Y-%m-%d"),
+            }
+            for h in historique
+        ]
+        
+        return JsonResponse(data, safe=False)
+    return JsonResponse({"error": "Requête invalide"}, status=400)
+
+
+def modifier_StockAlimentaire(request,id):
+    stockalimentaire = get_object_or_404(Historique_stock, id=id)
     if request.method == 'POST':
         form = StockAlimentaireForm(request.POST, instance=stockalimentaire)
         if form.is_valid():
@@ -898,10 +1164,9 @@ def modifier_StockAlimentaire(request):
     return render(request, 'stockalimentaire_modifier.html', {'form': form, 'stockalimentaire': stockalimentaire})
 
 
-def supprimer_StockAlimentaire(request):
-    poisson_id = request.GET.get('id')
-    stockalimentaire = get_object_or_404(StockAlimentaire, id=poisson_id)
-    if request.method == 'POST':
+def supprimer_StockAlimentaire(request,id):
+    stockalimentaire = get_object_or_404(Historique_stock, id=id)
+    if request.method == 'DELETE':
         stockalimentaire.delete()
         return redirect('liste_StockAlimentaire')  # Redirection après suppression
     
@@ -990,23 +1255,66 @@ def supprimer_vente(request):
 #         form = DepenseForm()
 #     return render(request, 'depense_ajout.html', {'form': form})
 
+# def ajouter_depense(request):
+#     if request.method == 'POST':
+#         form = DepenseForm(request.POST, request.FILES)
+#         if form.is_valid():
+#             depense = form.save()
+#             fichiers = request.FILES.getlist('fichiers')
+#             if fichiers:  # Vérifiez si des fichiers sont présents
+#                 for fichier in fichiers:
+                    
+#                     FichierDepense.objects.create(depense=depense, fichier=fichier)
+#             else:
+#                 print("Aucun fichier à ajouter.")
+#             return redirect('ajouter_depense')
+#     else:
+#         form = DepenseForm()
+#     return render(request, 'depense_ajout.html', {'form': form})
+
+
+from django.contrib import messages
+
+
 def ajouter_depense(request):
     if request.method == 'POST':
         form = DepenseForm(request.POST, request.FILES)
         if form.is_valid():
-            depense = form.save()
+            # Récupérer les données du formulaire
+            depense = form.save(commit=False)
+            sourcefine = depense.sourcefine
+            montant_depense = depense.montant
+
+            # Vérifier si le solde de la source de financement est suffisant
+            if sourcefine.solde < montant_depense:
+                # Si le solde est insuffisant, afficher un message d'erreur et ne pas enregistrer la dépense
+                messages.error(request, "Le solde de la source de financement est insuffisant pour cette dépense.")
+                return redirect('ajouter_depense')  # Rediriger vers la page du formulaire
+
+            # Enregistrer la dépense dans la base de données
+            depense.save()
+
+            # # Mettre à jour le solde de la source de financement
+            # sourcefine.solde -= montant_depense
+            # sourcefine.save()
+
+            # Gestion des fichiers joints (si présents)
             fichiers = request.FILES.getlist('fichiers')
             if fichiers:  # Vérifiez si des fichiers sont présents
                 for fichier in fichiers:
-                    print(f"Ajout du fichier: {fichier.name}")  # Afficher le nom du fichier
+                    # Créer une entrée pour chaque fichier associé à la dépense
                     FichierDepense.objects.create(depense=depense, fichier=fichier)
             else:
-                print("Aucun fichier à ajouter.")
-            return redirect('ajouter_depense')
-    else:
-        form = DepenseForm()
-    return render(request, 'depense_ajout.html', {'form': form})
+                print("Aucun fichier à ajouter.")  # Optionnel, pour déboguer si nécessaire
 
+            # Afficher un message de succès et rediriger
+            messages.success(request, "La dépense a été ajoutée avec succès.")
+            return redirect('ajouter_depense')  # Ou rediriger vers une autre page si nécessaire
+
+    else:
+        form = DepenseForm()  # Création du formulaire vide
+
+    return render(request, 'depense_ajout.html', {'form': form})
 
 def liste_depense(request):
     depenses = Depense.objects.all()
@@ -1117,7 +1425,7 @@ def ajouter_client(request):
 
 
 def liste_client(request):
-    clients = Client.objects.all()
+    clients = Clients.objects.all()
     return render(request, 'client_liste.html', {'clients': clients})
 
 def modifier_client(request):
@@ -1228,6 +1536,8 @@ def download_file(request, fichier_id):
 
 
 def creer_bon_de_commande(request):
+    bandes = Bande.objects.all()  # Récupérer tous les poissons
+    stock_poissons_bandes = {bande.id: bande.quantite_disponible_vente for bande in bandes}
     poissons = Poisson.objects.all()  # Récupérer tous les poissons
     stock_poissons = {poisson.id: poisson.nombre_alevins for poisson in poissons}
     if request.method == 'POST':
@@ -1239,16 +1549,17 @@ def creer_bon_de_commande(request):
             quantite_total = 0
             poids_total = 0
             # Récupérer les données des lignes du formulaire
-            poissons_ids = request.POST.getlist('poisson[]')
+            bande_ids = request.POST.getlist('poisson[]')
             quantites = request.POST.getlist('quantite[]')
             poids = request.POST.getlist('poids[]')
             prix_unitaires = request.POST.getlist('prix_unitaire[]')
-            
+            typepaiement = request.POST.get('typepaiement')
+            avance_montant = request.POST.get('avance_montant')
             # Traiter les lignes de commande
-            for poisson_id, quantite,poids, prix_unitaire in zip(poissons_ids, quantites,poids, prix_unitaires):
+            for bande_id, quantite,poids, prix_unitaire in zip(bande_ids, quantites,poids, prix_unitaires):
                 # try:
 
-                if poisson_id and poids and prix_unitaire:
+                if bande_id and poids and prix_unitaire:
                     quantite = float(quantite)
                     poids = float(poids)
                     prix_unitaire = float(prix_unitaire)
@@ -1260,11 +1571,12 @@ def creer_bon_de_commande(request):
                     poids_total +=poids
 
 
-                    intance_poisson = Poisson.objects.get(pk=poisson_id)
+                    # intance_poisson = Poisson.objects.get(pk=bande_id)
+                    intance_bande = Bande.objects.get(pk=bande_id)
                     # Créer la ligne de commande
                     LigneCommande.objects.create(
                         bon_de_commande=bon,
-                        poisson=intance_poisson,
+                        bande=intance_bande,
                         quantite=quantite,
                         poids=poids,
                         prix_unitaire=prix_unitaire,
@@ -1273,20 +1585,55 @@ def creer_bon_de_commande(request):
 
 
                 # except ValueError:
-                #     continue
+            if typepaiement == 'solde':
+                # Enregistrer le total de la vente comme payé
+                Paiement.objects.create(
+                    bon_de_commande=bon,
+                    montant_paye=total_vente,
+                    date_paiement=bon.date_vente,
+                )
+                Vente.objects.create(
+                    bon_de_commande = bon,
+                    quantite_vendue=quantite_total,
+                    Poids = poids_total,
+                    prix_vente=total_vente,
+                    montant_paye=total_vente,
+                    reste_a_paye=total_vente,
+                    date_vente=bon.date_vente,
+                    date_solde=bon.date_vente,
+                    client=bon.client
+                        )
+            elif typepaiement == 'avance':
+                # Enregistrer une avance (montant total ici, ou spécifier une partie)
+                Paiement.objects.create(
+                    bon_de_commande=bon,
+                    montant_paye=avance_montant,  # Variable pour une éventuelle saisie manuelle
+                    date_paiement=bon.date_vente,
+                )
+                Vente.objects.create(
+                    bon_de_commande = bon,
+                    quantite_vendue=quantite_total,
+                    Poids = poids_total,
+                    prix_vente=total_vente,
+                    montant_paye=avance_montant,
+                    reste_a_paye=total_vente-avance_montant,
+                    date_vente=bon.date_vente,
+                    client=bon.client
+                        )
+            elif typepaiement == 'aucun':
+                # Ne pas créer d'objet Paiement, mais enregistrer la vente
 
-            # Enregistrer le total de la vente dans le bon de commande
-            Vente.objects.create(
-                bon_de_commande = bon,
-                quantite_vendue=quantite_total,
-                Poids = poids_total,
-                prix_vente=total_vente,
-                date_vente=bon.date_vente,
-                client=bon.client
-                    )
+                Vente.objects.create(
+                    bon_de_commande = bon,
+                    quantite_vendue=quantite_total,
+                    Poids = poids_total,
+                    prix_vente=total_vente,
+                    montant_paye=0,
+                    reste_a_paye=total_vente,
+                    date_vente=bon.date_vente,
+                    client=bon.client
+                        )
             
-            
-
             return redirect('liste_vente')
 
     else:
@@ -1296,11 +1643,45 @@ def creer_bon_de_commande(request):
     context = {
         'poissons': poissons,  # Passer la liste des poissons dans le contexte
         'stock_poissons':stock_poissons,
+        'bandes': bandes,  
+        'stock_poissons_bandes':stock_poissons_bandes,
         'bon_form': bon_form,
         'ligne_form': ligne_form,
     }
 
     return render(request, 'creer_bon_de_commande.html', context)
+
+
+def enregistrer_paiement(request):
+
+    if request.method == 'POST':
+        form = PaiementForm(request.POST)
+        if form.is_valid():
+            ref_commande = request.POST.get('ref_bon')
+            bon_de_commande = BonDeCommande.objects.get(ref_bon=ref_commande)
+            paiement = form.save(commit=False)
+            paiement.bon_de_commande = bon_de_commande
+            paiement.save()
+            return redirect('liste_vente')  # Rediriger vers une page de votre choix
+    else:
+
+        form = PaiementForm()
+
+    # Passer les données supplémentaires au contexte
+    ref_commande = request.GET.get('id')
+
+    bon_de_commande = BonDeCommande.objects.get(ref_bon=ref_commande)
+    
+    vente = Vente.objects.filter(bon_de_commande=bon_de_commande).first()  # Supposant qu'il y a une relation
+    
+    context = {
+        'form': form,
+        'bon_de_commande': bon_de_commande,
+        'vente': vente,
+    }
+    return render(request, 'creer_paiement.html', context)
+
+
 
 def details_bon_de_commande(request):
     
@@ -1634,11 +2015,11 @@ def send_sms(msg):
     url = "https://apis.letexto.com/v1/campaigns/sms"
     payload = json.dumps({
     "label": "Notification des ventes et dépenses",
-    "sender": "BSLOCATION",
+    "sender": "SIGACQ SGCI",
     "contacts": [
-        {
-        "numero": "2250789248701",
-        },
+        # {
+        # "numero": "2250789248701",
+        # },
         {
           "numero": "2250544169597",
         },
@@ -1669,3 +2050,169 @@ def send_sms(msg):
 
 
 # send_sms("Bonjour Armand. Cet SMS t'a été envoyé dépuis l'outil de gestion piscicolte","2250544169597")
+
+
+def ajouter_historique_sourcefine(request):
+    if request.method == 'POST':
+        form = Historique_sourcefineForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('liste_sourcefine')  # Redirection vers la liste des poissons
+    else:
+        form = Historique_sourcefineForm()
+    return render(request, 'historique_sourcefine_ajout.html', {'form': form})
+
+
+
+def get_historique_sourcefine(request, sourcefine_id):
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        historique = Historique_Sourcefine.objects.filter(sourcefine_id=sourcefine_id)
+        data = [
+            {
+                "id": h.id,
+                "sourcefine": h.sourcefine.nom,
+                "Montant": str(h.Montant),
+                "dateajout": h.dateajout.strftime("%Y-%m-%d"),
+                "datemotif": h.datemotif.strftime("%Y-%m-%d")
+            }
+            for h in historique
+        ]
+        return JsonResponse(data, safe=False)
+    return JsonResponse({"error": "Requête invalide"}, status=400)
+
+
+def modifier_historique_sourcefine(request,id):
+    
+    historique_sourcefine = get_object_or_404(Historique_Sourcefine, id=id)
+    if request.method == 'POST':
+        form = Historique_sourcefineForm(request.POST, instance=historique_sourcefine)
+        if form.is_valid():
+            form.save()
+            return redirect('liste_sourcefine')  # Redirection après modification
+    else:
+        form = Historique_sourcefineForm(instance=historique_sourcefine)
+    return render(request, 'historique_sourcefine_modifier.html', {'form': form, 'historique_sourcefine': historique_sourcefine})
+
+
+def supprimer_historique_sourcefine(request,id):
+    historique_sourcefine = get_object_or_404(Historique_Sourcefine, id=id)
+    if request.method == 'DELETE':
+        historique_sourcefine.delete()
+        return redirect('liste_sourcefine')  # Redirection après suppression
+
+
+
+def liste_sourcefine(request):
+    sourcefines = Sourcefine.objects.all()
+    context = {
+        'sourcefines':sourcefines,
+    }
+    return render(request, 'sourcefine_liste.html',context)
+
+
+def modifier_sourcefine(request):
+    id = request.GET.get('id')
+    sourcefine = get_object_or_404(Sourcefine, id=id)
+    if request.method == 'POST':
+        form = SourcefineForm(request.POST, instance=sourcefine)
+        if form.is_valid():
+            form.save()
+            return redirect('liste_sourcefine')  # Redirection après modification
+    else:
+        form = SourcefineForm(instance=sourcefine)
+    return render(request, 'sourcefine_modifier.html', {'form': form, 'sourcefine': sourcefine})
+
+
+def supprimer_sourcefine(request):
+    sourcefine_id = request.GET.get('id')
+    historique_sourcefine = get_object_or_404(Sourcefine, id=sourcefine_id)
+    if request.method == 'GET':
+        historique_sourcefine.delete()
+        return redirect('liste_sourcefine')  # Redirection après suppression
+
+
+
+def valider_demande_reduction(request, demande_id, validation_step):
+    """
+    API pour valider une demande de réduction à une étape spécifique.
+    """
+    demande = get_object_or_404(demandeReduction, pk=demande_id)
+
+    # Validation de l'étape
+    if validation_step not in ['v1', 'v2', 'v3']:
+        return HttpResponseBadRequest("Étape de validation non valide.")
+
+    # Marquer l'étape comme validée
+    setattr(demande, validation_step, True)
+    demande.save()
+
+    # Vérification si toutes les validations sont complétées
+    if demande.v1 and demande.v2 and demande.v3:
+        demande.valide = True
+        demande.save()
+
+    return JsonResponse({
+        "message": f"Validation {validation_step} complétée.",
+        "valide": demande.valide,
+    })
+
+
+def envoyer_lien_validation(demande):
+    """
+    Envoie des SMS aux trois responsables pour la validation.
+    """
+    responsables = [
+        {'nom': 'Monsieur le Directeur', 'numero': '+2250544169597', 'etape': 'v1'},
+        {'nom': 'Monsieur le Directeur', 'numero': '+2250544169597', 'etape': 'v2'},
+        {'nom': 'Monsieur le Directeur', 'numero': '+2250544169597', 'etape': 'v3'},
+    ]
+
+    # client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+
+    for responsable in responsables:
+        lien = demande.get_validation_link(responsable['etape'])
+        message = f"Bonjour {responsable['nom']}, veuillez valider la demande de réduction via ce lien : {settings.SITE_URL}{lien}"
+        
+        send_sms(message)
+        # client.messages.create(
+        #     body=message,
+        #     from_=settings.TWILIO_PHONE_NUMBER,
+        #     to=responsable['numero']
+        # )
+        
+
+
+def creer_demande_reduction(request):
+    if request.method == 'POST':
+        form = DemandeReductionForm(request.POST)
+        if form.is_valid():
+            # Sauvegarder la demande de réduction
+            demande = form.save()
+            
+            # Envoyer les liens de validation par SMS
+            envoyer_lien_validation(demande)
+            
+            messages.success(request, "Demande de réduction enregistrée et liens de validation envoyés.")
+            return redirect('liste_client')  # Redirection après succès
+        else:
+            messages.error(request, "Veuillez corriger les erreurs dans le formulaire.")
+    else:
+        form = DemandeReductionForm()
+    
+    return render(request, 'creer_demande_reduction.html', {'form': form})
+
+
+
+def check_reduction(request):
+    client_id = request.GET.get('client_id')
+    try:
+        reduction = demandeReduction.objects.filter(client_id=client_id, valide=True).first()
+        if reduction:
+            return JsonResponse({
+                'reduction_valid': True,
+                'cout_total': reduction.cout_reduction,
+            })
+        else:
+            return JsonResponse({'reduction_valid': False})
+    except reduction.DoesNotExist:
+        return JsonResponse({'reduction_valid': False})

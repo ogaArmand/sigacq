@@ -1,0 +1,77 @@
+{% extends 'base.html' %} 
+
+{% block content %}
+
+{% load humanize %}
+{% load custom_filters %}
+
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+
+                        <div class="card shadow mb-4">
+                            <div class="card-header py-3">
+                                <h1 class="m-0 font-weight-bold text-primary">Modifier une nourriture</h1>
+                            </div>
+                            <div class="card-body">
+
+                            <form  class="user" method="post">                           
+                                {% csrf_token %}
+                                 <div class="form-group">
+                                {{ form.poisson|add_class:"id_poisson" }}
+                                    {{ form.etapeevolution|add_class:"id_etapeevolution" }}
+                                    {{ form.aliment }}
+                                    {{ form.rationalimentaire_donnee }}
+                                    {{ form.date_alimentation_reel }}
+                                </div>
+                                <button class="btn btn-success btn-lg btn-icon-split" style="padding: 15px 30px; width: 100%;" type="submit" >Mettre à jour</button>
+                               
+                            </form>
+
+                            </div>
+                        </div>
+
+                </div>
+                <!-- /.container-fluid -->
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const poissonField = document.querySelector('.id_poisson');
+        const etapeField = document.querySelector('.id_etapeevolution');
+
+        poissonField.addEventListener('change', function() {
+            const poissonId = poissonField.value;
+
+            if (poissonId) {
+                // Effectuer une requête AJAX pour obtenir les étapes actives
+                fetch(`/get-etapes-actives/?poisson_id=${poissonId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Effacer les options existantes
+                        etapeField.innerHTML = '';
+
+                        // Ajouter une option vide
+                        const emptyOption = document.createElement('option');
+                        emptyOption.value = '';
+                        emptyOption.textContent = '--- Sélectionnez une étape ---';
+                        etapeField.appendChild(emptyOption);
+
+                        // Ajouter les nouvelles options
+                        data.etapes.forEach(etape => {
+                            const option = document.createElement('option');
+                            option.value = etape.id;
+                            option.textContent = etape.name;
+                            etapeField.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Erreur lors du chargement des étapes actives :', error);
+                    });
+            } else {
+                // Si aucun poisson n'est sélectionné, vider les options
+                etapeField.innerHTML = '';
+            }
+        });
+    });
+</script>
+
+{% endblock content %} 

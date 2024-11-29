@@ -1,0 +1,88 @@
+{% extends 'base.html' %} 
+
+{% block content %}
+
+{% load humanize %}
+{% load custom_filters %}
+
+<style>
+    .container {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.container div {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+label {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100%;
+}
+
+</style>
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+
+                        <div class="card shadow mb-4">
+                            <div class="card-header py-3">
+                                <h1 class="m-0 font-weight-bold text-primary">Enregistrer un paiement</h1>
+                            </div>
+                            <div >
+                                <div class="container">
+                                    <!-- Première colonne -->
+                                    <div>
+                                        <label for="client">Client :</label>
+                                        <input type="text" id="client" value="{{ bon_de_commande.client }}" readonly>
+                                
+                                        <label for="quantite_vendue">Quantité vendue :</label>
+                                        <input type="text" id="quantite_vendue" value="{{ vente.quantite_vendue }}" readonly>
+                                
+                                        <label for="poids">Poids :</label>
+                                        <input type="text" id="poids" value="{{ vente.Poids }}" readonly>
+                                    </div>
+                                
+                                    <!-- Deuxième colonne -->
+                                    <div>
+                                        <label for="prix_total">Prix total :</label>
+                                        <input type="text" id="prix_total" value="{{ vente.prix_vente }}" readonly>
+                                
+                                        <label for="montant_paye">Montant payé jusqu'à présent :</label>
+                                        <input type="text" id="montant_paye" value="{{ bon_de_commande.montant_paye }}" readonly>
+                                
+                                        <label for="reste_a_payer">Reste à payer :</label>
+                                        <input type="text" id="reste_a_payer" value="{{ bon_de_commande.reste_a_paye }}" readonly>
+                                    </div>
+                                </div>
+                                
+                            
+                            <div class="card-body">
+                           
+                            <form  class="user" method="post" action="{% url 'enregistrer_paiement' %}">                           
+                                {% csrf_token %}
+                                 <div class="form-group">
+                                    <input type="hidden" name="ref_bon" value="{{ bon_de_commande.ref_bon }}" readonly>
+                                {{ form.as_p }}
+                                </div>
+                                <button class="btn btn-success btn-lg btn-icon-split" style="padding: 15px 30px; width: 100%;" type="submit" >Valider</button>
+
+                            </form>
+
+                            </div>
+                        </div>
+
+                </div>
+                <!-- /.container-fluid -->
+{% endblock content %} 

@@ -1,27 +1,106 @@
+
+{% load static %} 
 <!DOCTYPE html>
-<html>
-   <head>
-      <!-- Basic -->
-      <meta charset="utf-8" />
-      <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-      <!-- Mobile Metas -->
-      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-      <!-- Site Metas -->
-      <meta name="keywords" content="" />
-      <meta name="description" content="" />
-      <meta name="author" content="" />
-      <link rel="shortcut icon" href="static/images/logofada.png" type="">
-      <title>Bible Quiz Fada</title>
-      <!-- bootstrap core css -->
-      <link rel="stylesheet" type="text/css" href="static/css/bootstrap.css" />
-      <!-- font awesome style -->
-      <link href="static/css/font-awesome.min.css" rel="stylesheet" />
-      <!-- Custom styles for this template -->
-      <link href="static/css/style.css" rel="stylesheet" />
-      <!-- responsive style -->
-      <link href="static/css/responsive.css" rel="stylesheet" />
-   </head>
-   <body>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="{% static 'images/Logosys.png' %}" type="">
+    <title>Gestion de pisciculture</title>
+
+    <!-- Custom fonts for this template-->
+    <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet" type="text/css">
+    <link
+        href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
+        rel="stylesheet">
+
+    <!-- Custom styles for this template-->
+    <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ffffff;
+        }
+        th {
+            background-color: #063e89;
+        }
+        <style>
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 8px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+th {
+            background-color: #ff914d;
+            color: aqua;
+    }
+td {
+    background-color: #d9d9d9;
+    }
+tfoot td {
+    text-align: right;  /* Aligner les cellules du total à droite */
+}
+
+/* Style pour les totaux dans le tfoot */
+tfoot span {
+    font-weight: bold;  /* Appliquer le gras */
+    color: red;  /* Appliquer la couleur rouge */
+    font-size: 1.2em;  /* Agrandir légèrement la taille des chiffres */
+}
+
+
+.btn {
+    padding: 10px 20px; /* Ajoute de l'espace à l'intérieur du bouton */
+    border: none; /* Supprime la bordure par défaut */
+    border-radius: 5px; /* Coins arrondis */
+    font-size: 16px; /* Taille de la police */
+    cursor: pointer; /* Change le curseur en pointeur */
+    color: white; /* Couleur du texte */
+    transition: background-color 0.3s ease; /* Effet de transition pour le survol */
+}
+
+.btn-success {
+    background-color: #28a745; /* Couleur verte */
+}
+
+.btn-success:hover {
+    background-color: #218838; /* Couleur plus sombre au survol */
+}
+
+.btn-primary {
+    background-color: #007bff; /* Couleur bleue */
+}
+
+.btn-primary:hover {
+    background-color: #0069d9; /* Couleur plus sombre au survol */
+}
+
+.btn:disabled {
+    background-color: #c0c0c0; /* Couleur grise pour le bouton désactivé */
+    cursor: not-allowed; /* Change le curseur pour indiquer que le bouton est désactivé */
+}
+
+
+    </style>
+    </style>
+</head>
+
+<body id="page-top">
     
   
 {% include '_nav.html' %}
@@ -31,16 +110,67 @@
 {% include '_footer.html' %}
 {% block scripts %} 
 {% endblock scripts %}
-      <div class="cpy_">
-         <p>© 2021 All Rights Reserved By <a href="https://html.design/">Free Html Templates</a></p>
-      </div>
-      <!-- jQery -->
-      <script src="static/js/jquery-3.4.1.min.js"></script>
-      <!-- popper js -->
-      <script src="static/js/popper.min.js"></script>
-      <!-- bootstrap js -->
-      <script src="static/js/bootstrap.js"></script>
-      <!-- custom js -->
-      <script src="static/js/custom.js"></script>
-    </body>
+<!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+
+    <!-- Logout Modal-->
+    <div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Ready to Leave?</h5>
+                    <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body">Select "Logout" below if you are ready to end your current session.</div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
+                    <a class="btn btn-primary" href="login.html">Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap core JavaScript-->
+    <script src="static/vendor/jquery/jquery.min.js"></script>
+    <script src="static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Core plugin JavaScript-->
+    <script src="static/vendor/jquery-easing/jquery.easing.min.js"></script>
+
+    <!-- Custom scripts for all pages-->
+    <script src="static/js/sb-admin-2.min.js"></script>
+
+    <!-- Page level plugins -->
+    <script src="static/vendor/chart.js/Chart.min.js"></script>
+
+    <!-- Page level custom scripts -->
+    <script src="static/js/demo/chart-area-demo.js"></script>
+    <script src="static/js/demo/chart-pie-demo.js"></script>
+
+
+
+        <!-- Bootstrap core JavaScript-->
+    <script src="static/vendor/jquery/jquery.min.js"></script>
+    <script src="static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Core plugin JavaScript-->
+    <script src="static/vendor/jquery-easing/jquery.easing.min.js"></script>
+
+    <!-- Custom scripts for all pages-->
+    <script src="static/js/sb-admin-2.min.js"></script>
+
+    <!-- Page level plugins -->
+    <script src="static/vendor/datatables/jquery.dataTables.min.js"></script>
+    <script src="static/vendor/datatables/dataTables.bootstrap4.min.js"></script>
+
+    <!-- Page level custom scripts -->
+    <script src="static/js/demo/datatables-demo.js"></script>
+
+</body>
+
 </html>

@@ -15,12 +15,19 @@ from .forms import *
 # admin.site.register(Fichier,Fichieradmin)
 
 
+@admin.register(Nourrirpoisson)
+class NourrirpoissonAdmin(admin.ModelAdmin):
+    form = NourrirpoissonForm
+
 @admin.register(Configuration)
 class ConfigurationAdmin(admin.ModelAdmin):
     list_display = ('seuil_depense',)
     
-admin.site.register(Fichier)
-admin.site.register(Client)
+admin.site.register(Sourcefine)
+admin.site.register(StockAlimentaire)
+admin.site.register(Historique_stock)
+admin.site.register(Historique_Sourcefine)
+admin.site.register(Clients)
 admin.site.register(BonDeCommande)
 admin.site.register(LigneCommande)
 admin.site.register(Bassin)
@@ -35,6 +42,7 @@ admin.site.register(NormeCroissance)
 admin.site.register(EtapeEvolution)
 admin.site.register(AlimentRecommande)
 admin.site.register(SuiviCroissance)
+admin.site.register(SuiviAlimentaire)
 
 
 
